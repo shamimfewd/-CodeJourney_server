@@ -31,9 +31,7 @@ async function run() {
     const sessionCollection = client
       .db("assignment12DB")
       .collection("sessions");
-    const userCollection = client
-      .db("assignment12DB")
-      .collection("users");
+    const userCollection = client.db("assignment12DB").collection("users");
 
     // jwt related api
     app.post("/jwt", async (req, res) => {
@@ -60,23 +58,43 @@ async function run() {
       });
     };
 
+    // is admin
+    // verifyAdmin,
+    app.get(
+      "/users/admin/:email",
+      verifyToken,
 
+      async (req, res) => {
+        const email = req.params.email;
+        if (email !== req.decoded.email) {
+          return res.status(403).send({ message: "unauthorized access" });
+        }
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        let admin = false;
+        let tutor = false;
+        if (user) {
+          admin = user?.role === "admin";
+        } else if (user) {
+          tutor = user?.role === "tutor";
+        }
+        res.send({ admin, tutor });
+      }
+    );
 
     // post user info in data base
     app.post("/users", async (req, res) => {
       const user = req.body;
       // insert email if user does't exist
-      // you can do this many ways (1. email unique, 2. upsert, 3. simple checking)
+
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
       if (existingUser) {
         return res.send({ message: "user already exists", insertedId: null });
       }
-
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
