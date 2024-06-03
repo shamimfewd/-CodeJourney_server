@@ -72,13 +72,42 @@ async function run() {
         const query = { email: email };
         const user = await userCollection.findOne(query);
         let admin = false;
-        let tutor = false;
+
+        // if (user) {
+        //   if (URIError.role === "admin") {
+        //     return true;
+        //   }
+
+        //   if (user.role === "tutor") {
+        //     return true;
+        //   }
+        // }
         if (user) {
           admin = user?.role === "admin";
-        } else if (user) {
+        }
+        res.send({ admin });
+      }
+    );
+
+    // is tutor
+    // verifyTutor,
+    app.get(
+      "/users/tutor/:email",
+      verifyToken,
+
+      async (req, res) => {
+        const email = req.params.email;
+        if (email !== req.decoded.email) {
+          return res.status(403).send({ message: "unauthorized access" });
+        }
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        let tutor = true;
+
+        if (user) {
           tutor = user?.role === "tutor";
         }
-        res.send({ admin, tutor });
+        res.send({ tutor });
       }
     );
 
