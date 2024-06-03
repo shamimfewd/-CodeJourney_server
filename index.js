@@ -72,16 +72,6 @@ async function run() {
         const query = { email: email };
         const user = await userCollection.findOne(query);
         let admin = false;
-
-        // if (user) {
-        //   if (URIError.role === "admin") {
-        //     return true;
-        //   }
-
-        //   if (user.role === "tutor") {
-        //     return true;
-        //   }
-        // }
         if (user) {
           admin = user?.role === "admin";
         }
@@ -102,7 +92,7 @@ async function run() {
         }
         const query = { email: email };
         const user = await userCollection.findOne(query);
-        let tutor = true;
+        let tutor = false;
 
         if (user) {
           tutor = user?.role === "tutor";
@@ -124,6 +114,14 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
+    // add session
+    app.post("/session", verifyToken, async (req, res) => {
+      const item = req.body;
+      const result = await sessionCollection.insertOne(item);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
