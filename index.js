@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 var jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -32,6 +32,18 @@ async function run() {
       .db("assignment12DB")
       .collection("sessions");
     const userCollection = client.db("assignment12DB").collection("users");
+
+    // use verify admin after verify token
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     // jwt related api
     app.post("/jwt", async (req, res) => {
@@ -92,7 +104,7 @@ async function run() {
         }
         const query = { email: email };
         const user = await userCollection.findOne(query);
-        let tutor = false;
+        let tutor = true;
 
         if (user) {
           tutor = user?.role === "tutor";
@@ -101,11 +113,22 @@ async function run() {
       }
     );
 
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+
     // post user info in data base
     app.post("/users", async (req, res) => {
       const user = req.body;
       // insert email if user does't exist
-
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
       if (existingUser) {
@@ -115,10 +138,58 @@ async function run() {
       res.send(result);
     });
 
+    // delete user
+    app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // add session
     app.post("/session", verifyToken, async (req, res) => {
       const item = req.body;
       const result = await sessionCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.get("/session/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await sessionCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // make admin----
+    // app.patch(
+    //   "/users/admin/:id",
+    //   verifyToken,
+
+    //   async (req, res) => {
+    //     const id = req.params.id;
+    //     const filter = { _id: new ObjectId(id) };
+    //     const updatedDoc = {
+    //       $set: {
+    //         role: "admin",
+    //       },
+    //     };
+    //     const result = await userCollection.updateOne(filter, updatedDoc);
+    //     res.send(result);
+    //   }
+    // );
+
+    // update menu item
+    app.patch("/users/:id", verifyToken, async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+
+      const updatedDoc = {
+        $set: {
+          role: item.role,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
