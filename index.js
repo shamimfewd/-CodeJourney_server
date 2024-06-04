@@ -114,7 +114,12 @@ async function run() {
     );
 
     app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
-      const result = await userCollection.find().toArray();
+      const search = req.query.search || "";
+      const searchString = String(search);
+      let query = {
+        name: { $regex: searchString, $options: "i" },
+      };
+      const result = await userCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -159,24 +164,6 @@ async function run() {
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
-
-    // make admin----
-    // app.patch(
-    //   "/users/admin/:id",
-    //   verifyToken,
-
-    //   async (req, res) => {
-    //     const id = req.params.id;
-    //     const filter = { _id: new ObjectId(id) };
-    //     const updatedDoc = {
-    //       $set: {
-    //         role: "admin",
-    //       },
-    //     };
-    //     const result = await userCollection.updateOne(filter, updatedDoc);
-    //     res.send(result);
-    //   }
-    // );
 
     // update menu item
     app.patch("/users/:id", verifyToken, async (req, res) => {
