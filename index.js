@@ -165,6 +165,28 @@ async function run() {
       res.send(result);
     });
 
+
+    // get session data for status update
+    app.get("/session/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.findOne(query);
+      res.send(result);
+    });
+
+    // update status
+
+    app.patch("/updateSta/:id", async (req, res) => {
+      const id = req.params.id;
+      const status = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updatedata = {
+        $set: status,
+      };
+      const result = await sessionCollection.updateOne(query, updatedata);
+      res.send(result);
+    });
+
     // update menu item
     app.patch("/users/:id", verifyToken, async (req, res) => {
       const item = req.body;
