@@ -158,13 +158,12 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/session/:email", async (req, res) => {
+    app.get("/mySession/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-      const query = { email: email };
+      const query = { tutorEmail: email };
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
-
 
     // get session data for status update
     app.get("/session/:id", verifyToken, async (req, res) => {
@@ -182,6 +181,18 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const updatedata = {
         $set: status,
+      };
+      const result = await sessionCollection.updateOne(query, updatedata);
+      res.send(result);
+    });
+
+    // update price
+    app.patch("/updatePrice/:id", async (req, res) => {
+      const id = req.params.id;
+      const price = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updatedata = {
+        $set: price,
       };
       const result = await sessionCollection.updateOne(query, updatedata);
       res.send(result);
