@@ -58,9 +58,10 @@ async function run() {
     const verifyToken = (req, res, next) => {
       // console.log("inside verify token", req.headers.authorization);
       if (!req.headers.authorization) {
-        return res.status(401).send({ message: "forbidden access" });
+        return res.status(401).send({ message: "unAuthorized access" });
       }
       const token = req.headers.authorization.split(" ")[1];
+
       jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
           return res.status(401).send({ message: "forbidden access" });
@@ -113,6 +114,8 @@ async function run() {
       }
     );
 
+    // start users related api=============================================================>
+
     app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const search = req.query.search || "";
       const searchString = String(search);
@@ -123,7 +126,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/users/:id", async (req, res) => {
+    app.get("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollection.findOne(query);
@@ -151,13 +154,30 @@ async function run() {
       res.send(result);
     });
 
-    // add session
+    // update  user status
+    app.patch("/users/:id", verifyToken, async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: item.role,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    // =========End user related api==================================================================>
+
+    // add session from tutor route(create session)
     app.post("/session", verifyToken, async (req, res) => {
       const item = req.body;
       const result = await sessionCollection.insertOne(item);
       res.send(result);
     });
 
+    // tutor created session in dashboard route(my Sessions)
     app.get("/mySession/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { tutorEmail: email };
@@ -165,8 +185,50 @@ async function run() {
       res.send(result);
     });
 
-    // get session data for status update
-    app.get("/session/:id", verifyToken, async (req, res) => {
+    // get session data for form update
+    app.get("/upSession/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.put("/upSession/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const optional = { upsert: true };
+      const data = {
+        $set: {
+          title: req.body.title,
+          tutorName: req.body.tutorName,
+          tutorEmail: req.body.tutorEmail,
+          registrationStart: req.body.registrationStart,
+          registrationEnd: req.body.registrationEnd,
+          description: req.body.description,
+          classStart: req.body.classStart,
+          classEnd: req.body.classEnd,
+          price: req.body.price,
+        },
+      };
+
+      const result = await sessionCollection.updateOne(filter, data, optional);
+      res.send(result);
+    });
+
+
+
+
+    // delete  session
+
+    app.delete("/delSession/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.deleteOne(query);
+      res.send(result);
+    });
+    // ----------------------------------------------------
+    // get session data for status update -- for admin
+    app.get("/session/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await sessionCollection.findOne(query);
@@ -174,7 +236,6 @@ async function run() {
     });
 
     // update status
-
     app.patch("/updateSta/:id", async (req, res) => {
       const id = req.params.id;
       const status = req.body;
@@ -186,30 +247,19 @@ async function run() {
       res.send(result);
     });
 
+    // --------------------------------------------------------
+
     // update price
     app.patch("/updatePrice/:id", async (req, res) => {
-      const id = req.params.id;
-      const price = req.body;
-      const query = { _id: new ObjectId(id) };
-      const updatedata = {
-        $set: price,
-      };
-      const result = await sessionCollection.updateOne(query, updatedata);
-      res.send(result);
-    });
-
-    // update menu item
-    app.patch("/users/:id", verifyToken, async (req, res) => {
       const item = req.body;
       const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-
-      const updatedDoc = {
+      const query = { _id: new ObjectId(id) };
+      const updatedata = {
         $set: {
-          role: item.role,
+          price: item.price,
         },
       };
-      const result = await userCollection.updateOne(filter, updatedDoc);
+      const result = await sessionCollection.updateOne(query, updatedata);
       res.send(result);
     });
 
