@@ -32,6 +32,7 @@ async function run() {
       .db("assignment12DB")
       .collection("sessions");
     const userCollection = client.db("assignment12DB").collection("users");
+    const noteCollection = client.db("assignment12DB").collection("notes");
 
     // use verify admin after verify token
     const verifyAdmin = async (req, res, next) => {
@@ -215,17 +216,19 @@ async function run() {
       res.send(result);
     });
 
-
-
-
     // delete  session
 
-    app.delete("/delSession/:id", verifyToken, verifyAdmin, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await sessionCollection.deleteOne(query);
-      res.send(result);
-    });
+    app.delete(
+      "/delSession/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await sessionCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
     // ----------------------------------------------------
     // get session data for status update -- for admin
     app.get("/session/:id", verifyToken, verifyAdmin, async (req, res) => {
@@ -266,6 +269,48 @@ async function run() {
     // get all session
     app.get("/session", async (req, res) => {
       const result = await sessionCollection.find().toArray();
+      res.send(result);
+    });
+
+    // add note from student route(create note)
+    app.post("/note", verifyToken, async (req, res) => {
+      const item = req.body;
+      const result = await noteCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // student created note in dashboard route(manage personal note)
+    app.get("/myNotes/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { studentEmail: email };
+      const result = await noteCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get note data for form update -- for student
+    app.get("/upNote/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await noteCollection.findOne(query);
+      res.send(result);
+    });
+
+
+
+    // update note by student
+    app.put("/upNote/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const optional = { upsert: true };
+      const data = {
+        $set: {
+          title: req.body.title,
+          tutorEmail: req.body.tutorEmail,
+          description: req.body.description,
+        },
+      };
+
+      const result = await noteCollection.updateOne(filter, data, optional);
       res.send(result);
     });
 
