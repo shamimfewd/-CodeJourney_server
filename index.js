@@ -309,11 +309,23 @@ async function run() {
           description: req.body.description,
         },
       };
-
       const result = await noteCollection.updateOne(filter, data, optional);
       res.send(result);
     });
 
+
+
+// delete note by student
+    app.delete(
+      "/delNote/:id",
+      verifyToken,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await noteCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
