@@ -33,6 +33,13 @@ async function run() {
       .collection("sessions");
     const userCollection = client.db("assignment12DB").collection("users");
     const noteCollection = client.db("assignment12DB").collection("notes");
+    const materialCollection = client
+      .db("assignment12DB")
+      .collection("materials");
+    const bookedCollection = client
+      .db("assignment12DB")
+      .collection("bookedSession");
+    const reviewCollection = client.db("assignment12DB").collection("reviews");
 
     // use verify admin after verify token
     const verifyAdmin = async (req, res, next) => {
@@ -106,7 +113,7 @@ async function run() {
         }
         const query = { email: email };
         const user = await userCollection.findOne(query);
-        let tutor = true;
+        let tutor = false;
 
         if (user) {
           tutor = user?.role === "tutor";
@@ -272,6 +279,26 @@ async function run() {
       res.send(result);
     });
 
+    // get all session
+    app.get("/sessionDetails", async (req, res) => {
+      const result = await sessionCollection.find().toArray();
+      res.send(result);
+    });
+
+    // get all approved session at home page
+    app.get("/sessionAtHome", async (req, res) => {
+      const query = { status: "Approved" };
+      const result = await sessionCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // applyAgain session
+    app.post("/applyAgain", verifyToken, async (req, res) => {
+      const applySession = req.body;
+      const result = await materialCollection.insertOne(applySession);
+      res.send(result);
+    });
+
     // add note from student route(create note)
     app.post("/note", verifyToken, async (req, res) => {
       const item = req.body;
@@ -295,8 +322,6 @@ async function run() {
       res.send(result);
     });
 
-
-
     // update note by student
     app.put("/upNote/:id", async (req, res) => {
       const id = req.params.id;
@@ -313,19 +338,113 @@ async function run() {
       res.send(result);
     });
 
+    // delete note by student
+    app.delete("/delNote/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await noteCollection.deleteOne(query);
+      res.send(result);
+    });
 
+    // materials
+    app.post("/materials", verifyToken, async (req, res) => {
+      const material = req.body;
+      const result = await materialCollection.insertOne(material);
+      res.send(result);
+    });
 
-// delete note by student
-    app.delete(
-      "/delNote/:id",
-      verifyToken,
-      async (req, res) => {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await noteCollection.deleteOne(query);
-        res.send(result);
-      }
-    );
+    // approved session
+    app.get("/approvedSession/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { tutorEmail: email, status: "Approved" };
+      const result = await sessionCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get materials uploaded by tutor
+    app.get("/myMaterials/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { tutorEmail: email };
+      const result = await materialCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // delete material by tutor
+    app.delete("/delMaterial/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await materialCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // get data for update by tutor
+    app.get("/upMaterial/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await materialCollection.findOne(query);
+      res.send(result);
+    });
+    // patch by tutor
+    app.patch("/upMaterial/:id", verifyToken, async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          title: req.body.title,
+          tutorEmail: req.body.tutorEmail,
+          sessionId: req.body.sessionId,
+          link: req.body.link,
+          image: req.body.image,
+        },
+      };
+      const result = await materialCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    // view all notes
+    app.get("/noteForTutor", async (req, res) => {
+      const result = await noteCollection.find().toArray();
+      res.send(result);
+    });
+
+    // booking session
+
+    app.post("/bookingSession", async (req, res) => {
+      const session = req.body;
+      const result = await bookedCollection.insertOne(session);
+      res.send(result);
+    });
+
+    // booked session
+
+    app.get("/bookedSessions/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await bookedCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get booked for details page
+    app.get("/bookedDetail", async (req, res) => {
+      const result = await bookedCollection.find().toArray();
+      res.send(result);
+    });
+
+    // post review by student
+
+    app.post("/feedBack", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result);
+    });
+
+    // get review
+    app.get("/showReview", async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
