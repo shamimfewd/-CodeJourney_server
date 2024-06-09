@@ -1,10 +1,11 @@
 const express = require("express");
 const app = express();
+require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 var jwt = require("jsonwebtoken");
-require("dotenv").config();
-// const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middle ware
@@ -40,6 +41,9 @@ async function run() {
       .db("assignment12DB")
       .collection("bookedSession");
     const reviewCollection = client.db("assignment12DB").collection("reviews");
+    const purchaseCollection = client
+      .db("assignment12DB")
+      .collection("purchase");
 
     // use verify admin after verify token
     const verifyAdmin = async (req, res, next) => {
@@ -402,6 +406,12 @@ async function run() {
       res.send(result);
     });
 
+    // get materials for student
+    app.get("/materialsStu", async (req, res) => {
+      const result = await materialCollection.find().toArray();
+      res.send(result);
+    });
+
     // view all notes
     app.get("/noteForTutor", async (req, res) => {
       const result = await noteCollection.find().toArray();
@@ -441,9 +451,41 @@ async function run() {
 
     // get review
     app.get("/showReview", async (req, res) => {
+      // const id = req.params.id;
+      // const query = { _id: new ObjectId(id) };
       const result = await reviewCollection.find().toArray();
       res.send(result);
     });
+
+    // ===========payment =================================
+
+    app.post("/create-payment-intent", verifyToken, async (req, res) => {
+      const price = req.body.price;
+      const priceInCent = parseFloat(price) * 100;
+
+      if (!price || priceInCent < 1) return;
+
+      // Create a PaymentIntent with the order amount and currency
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: priceInCent,
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.send({
+        clientSecret: client_secret,
+      });
+    });
+
+    // purchase  session
+    app.post("/purchaseSession", verifyToken, async (req, res) => {
+      const purchase = req.body;
+      const result = await purchaseCollection.insertOne(purchase);
+      res.send(result);
+    });
+    // ====================================================
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
