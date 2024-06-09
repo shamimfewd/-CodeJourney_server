@@ -138,7 +138,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
+    app.get("/users/:id",  async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollection.findOne(query);
@@ -167,7 +167,7 @@ async function run() {
     });
 
     // update  user status
-    app.patch("/users/:id", verifyToken, async (req, res) => {
+    app.patch("/upUsers/:id", verifyToken, async (req, res) => {
       const item = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -370,6 +370,12 @@ async function run() {
       const email = req.params.email;
       const query = { tutorEmail: email };
       const result = await materialCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get materials for admin
+    app.get("/materialsForAdmin", async (req, res) => {
+      const result = await materialCollection.find().toArray();
       res.send(result);
     });
 
