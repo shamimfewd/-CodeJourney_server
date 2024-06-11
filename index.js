@@ -138,7 +138,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/users/:id",  async (req, res) => {
+    app.get("/users/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollection.findOne(query);
@@ -414,10 +414,25 @@ async function run() {
 
     // get materials for student
     app.get("/materialsStu", async (req, res) => {
-      const result = await materialCollection.find().toArray();
+      const size = parseInt(req.query.size);
+      const page = parseInt(req.query.page) - 1;
+      const result = await materialCollection
+        .find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+
       res.send(result);
     });
 
+    // get count of the item for pagination
+    app.get("/materialCount", async (req, res) => {
+      const count = await materialCollection.countDocuments();
+      res.send({ count });
+    });
+
+   
+    
     // view all notes
     app.get("/noteForTutor", async (req, res) => {
       const result = await noteCollection.find().toArray();
