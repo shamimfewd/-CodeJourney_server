@@ -10,7 +10,14 @@ const port = process.env.PORT || 5000;
 
 // middle ware
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://cozy-empanada-89974c.netlify.app",
+    ],
+  })
+);
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ssblxww.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -27,7 +34,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const sessionCollection = client
       .db("assignment12DB")
@@ -44,6 +51,9 @@ async function run() {
     const purchaseCollection = client
       .db("assignment12DB")
       .collection("purchase");
+    const feedbackCollection = client
+      .db("assignment12DB")
+      .collection("feedbacks");
 
     // use verify admin after verify token
     const verifyAdmin = async (req, res, next) => {
@@ -264,6 +274,14 @@ async function run() {
     // --------------------------------------------------------
 
     // update price
+
+    app.get("/updatePrice/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.findOne(query);
+      res.send(result);
+    });
+
     app.patch("/updatePrice/:id", async (req, res) => {
       const item = req.body;
       const id = req.params.id;
@@ -431,8 +449,6 @@ async function run() {
       res.send({ count });
     });
 
-   
-    
     // view all notes
     app.get("/noteForTutor", async (req, res) => {
       const result = await noteCollection.find().toArray();
@@ -457,13 +473,12 @@ async function run() {
     });
 
     // get booked for details page
-    app.get("/bookedDetail", async (req, res) => {
-      const result = await bookedCollection.find().toArray();
+    app.get("/bookedeStudent", async (req, res) => {
+      const result = await purchaseCollection.find().toArray();
       res.send(result);
     });
 
     // post review by student
-
     app.post("/feedBack", async (req, res) => {
       const review = req.body;
       const result = await reviewCollection.insertOne(review);
@@ -475,6 +490,24 @@ async function run() {
       // const id = req.params.id;
       // const query = { _id: new ObjectId(id) };
       const result = await reviewCollection.find().toArray();
+      res.send(result);
+    });
+
+    // post feedback by admin
+    app.post(
+      "/rejectionFeedBack",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const review = req.body;
+        const result = await feedbackCollection.insertOne(review);
+        res.send(result);
+      }
+    );
+
+    // get feedback in tutor dashboard
+    app.get("/rejectionFeedBack", async (req, res) => {
+      const result = await feedbackCollection.find().toArray();
       res.send(result);
     });
 
@@ -506,10 +539,18 @@ async function run() {
       const result = await purchaseCollection.insertOne(purchase);
       res.send(result);
     });
+
+    // get booked  session
+    app.get("/getPurchaseSession/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await purchaseCollection.find(query).toArray();
+      res.send(result);
+    });
     // ====================================================
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
