@@ -30,10 +30,10 @@
     Create a `.env` file in the root directory with the following content:
 
     ```env
-   DB_USER=
-    DB_PASS=
-    JWT_TOKEN=
-    
+   DB_USER=your-db-user
+    DB_PASS=your-db-pass
+    STRIPE_SECRET_KEY=your-stripe-secret-key
+    ACCESS_TOKEN_SECRET=your-token
     ```
 
 4. **Run the application:**
