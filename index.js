@@ -134,6 +134,21 @@ async function run() {
       }
     );
 
+    // is student
+    app.get("/user/student/:email", async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let student = false;
+      if (user) {
+        student = user?.role === "student";
+      }
+      res.send({ student });
+    });
+
     // start users related api=============================================================>
 
     app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
@@ -249,7 +264,6 @@ async function run() {
       }
     );
 
-    
     // ----------------------------------------------------
     // get session data for status update -- for admin
     app.get("/session/:id", verifyToken, verifyAdmin, async (req, res) => {
@@ -258,7 +272,6 @@ async function run() {
       const result = await sessionCollection.findOne(query);
       res.send(result);
     });
-
 
     // update status
     app.patch("/updateSta/:id", async (req, res) => {
